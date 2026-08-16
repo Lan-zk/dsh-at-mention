@@ -1,7 +1,6 @@
 {
   "name": "dsh-at-mention",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "@-mention context references for DeepSeek Harness: workspace file search and cross-session references from the web composer.",
   "license": "MIT",
@@ -41,7 +40,8 @@
     "build": "pnpm run typecheck && pnpm run emit-types && tsdown",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.client-tests.json",
     "emit-types": "tsc -p tsconfig.types.json && tsc -p tsconfig.types.client.json",
-    "test": "node --test"
+    "test": "node --test",
+    "prepublishOnly": "pnpm build"
   },
   "dependencies": {
     "@deepseek-ai/schemastery": "3.18.1",
@@ -81,5 +81,8 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": []
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
   }
 }

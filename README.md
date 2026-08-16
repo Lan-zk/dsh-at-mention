@@ -28,9 +28,24 @@
 ### Prerequisites
 
 - A DeepSeek Harness (`dsh`) environment with plugin support.
-- [pnpm](https://pnpm.io/) and Node.js for building from source.
 
-### Install from source
+### Install from the plugin market (recommended)
+
+The plugin is published to npm, so it can be installed directly through `dsh`:
+
+```sh
+dsh plugin --profile <name> add dsh-at-mention
+dsh --profile <name> --dump-config
+dsh --profile <name>
+```
+
+Replace `<name>` with your DeepSeek Harness profile name.
+
+The bundle layer inserts one host plugin row (`id: at-mention`); the client half rides the `dsh.client` declaration in `package.json`, so no separate client installation step is required.
+
+### Install from source (optional, for development/debugging)
+
+If you need to build from source or modify the plugin:
 
 ```sh
 git clone https://github.com/Lan-zk/dsh-at-mention.git
@@ -41,10 +56,6 @@ dsh plugin --profile <name> add ./dsh-at-mention
 dsh --profile <name> --dump-config
 dsh --profile <name>
 ```
-
-Replace `<name>` with your DeepSeek Harness profile name.
-
-The bundle layer inserts one host plugin row (`id: at-mention`); the client half rides the `dsh.client` declaration in `package.json`, so no separate client installation step is required.
 
 ### Verify the installation
 

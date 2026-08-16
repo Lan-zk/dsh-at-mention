@@ -19,9 +19,24 @@
 ### 前置要求
 
 - 支持插件的 DeepSeek Harness（`dsh`）环境。
-- [pnpm](https://pnpm.io/) 和 Node.js（用于从源码构建）。
 
-### 从源码安装
+### 从插件市场安装（推荐）
+
+插件已发布到 npm，可以直接通过 `dsh` 安装：
+
+```sh
+dsh plugin --profile <name> add dsh-at-mention
+dsh --profile <name> --dump-config
+dsh --profile <name>
+```
+
+将 `<name>` 替换为你的 DeepSeek Harness 配置名称。
+
+插件通过 `cordis.patch.yml` 注入一个 host 插件行（`id: at-mention`）；客户端部分由 `package.json` 中的 `dsh.client` 声明自动加载，无需单独安装。
+
+### 从源码安装（可选，用于开发/调试）
+
+如果你需要基于源码构建或修改插件：
 
 ```sh
 git clone https://github.com/Lan-zk/dsh-at-mention.git
@@ -32,10 +47,6 @@ dsh plugin --profile <name> add ./dsh-at-mention
 dsh --profile <name> --dump-config
 dsh --profile <name>
 ```
-
-将 `<name>` 替换为你的 DeepSeek Harness 配置名称。
-
-插件通过 `cordis.patch.yml` 注入一个 host 插件行（`id: at-mention`）；客户端部分由 `package.json` 中的 `dsh.client` 声明自动加载，无需单独安装。
 
 ### 验证安装
 
