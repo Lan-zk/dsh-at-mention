@@ -1,0 +1,5 @@
+# dsh-at-mention bundle layer: mounts the host plugin (the client half rides
+# the package.json `dsh.client` declaration, scanned by client-modules).
+- insert:
+    - id: at-mention
+      name: dsh-at-mention
