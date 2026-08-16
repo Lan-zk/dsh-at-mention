@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "tests/client-uri.test.ts",
+    "tests/client-candidates.test.ts",
+    "src/client/uri.ts",
+    "src/client/candidates.ts",
+    "src/client/host-api.ts"
+  ],
+  "exclude": []
+}

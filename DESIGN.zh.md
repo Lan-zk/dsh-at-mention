@@ -144,8 +144,11 @@ Codex 的 Tab 下钻/Enter 插目录依赖 Tab 仲裁，dsh 管线不支持（F4
 - tsdown 双产物：`lib/index.js`（host ESM）与 `lib/client.js`（闭包工厂，注册 `window.__ModuleLoader__`）。
 - 依赖增量（相对模板）：host 侧新增 `@deepseek-ai/dsh-session-reference`、`@deepseek-ai/dsh-tool-fs-search`、
   `@deepseek-ai/dsh-host-webserver`、`@deepseek-ai/dsh-session-query`、`@deepseek-ai/dsh-llm`（`createUserMessage`）；
-  client 侧新增 `@deepseek-ai/dsh-client-ui-input-trigger`、`@deepseek-ai/dsh-client-runtime`、`@deepseek-ai/dsh-client-locale`。
+  client 侧新增 `@deepseek-ai/dsh-client-ui-input-trigger`、`@deepseek-ai/dsh-client-runtime`（产品文案中文硬编码，无 locale 依赖）。
   版本对齐钉 `0.1.0-rc.6`（工作区约定）。
+- **TS 程序分离（实现新增）**：`dsh-session`（host）与 `dsh-client-runtime`（client）对 `Context.sessions` 的声明合并互斥（host/client 双 aggregate，02 §7），
+  一个 program 同时 import 两半会得到冲突类型（`list: () => Session[]`）。解法：`tsconfig.json`（host src+host tests）、`tsconfig.client.json`（client src）、
+  `tsconfig.client-tests.json`（client 纯逻辑测试，排除 client/index.ts）三程序分查；类型产物分 `tsconfig.types.json` / `tsconfig.types.client.json` 两次 emit。
 
 ### 5.2 Host 半
 
@@ -284,7 +287,7 @@ async (payload, next) => {
 
 - **M1（已完成，2026-08-16）**：项目文件夹 + 本设计文档；骨架件（package.json / tsdown.config.ts / pnpm-workspace.yaml / cordis.patch.yml / tsconfig）+ git 初始化。
 - **M2（已完成，2026-08-16）**：host 半 snapshot 模式——resolver 挂载、pre-step 消费器、search-files / resolve-session / stat-file 三条路由；单测 28 例全绿（URI 解析、预算与降级路径、路由校验、作用域校验、HMR 注册形态）。
-- **M3**：client 半——两个 `@` 源（候选/防抖/排序/序列化/发送前探活/错误候选）、chip 路径回归（F3 首个生产消费者重点项）。
+- **M3（已完成，2026-08-16）**：client 半——两个 `@` 源（`会话`/`文件`：候选/防抖/排序/消歧/序列化/发送前探活/错误候选）+ client 端 URI 编码（`btoa` 替代 `Buffer`）；跨端 round-trip 与候选纯逻辑测试并入全量 44 例。
 - **M4**：组装与真机——快照测试、真实组合测试（04-plugin-workflow §4）、内置浏览器回归（三条 HTTP 路由可 fetch 驱动）。
 - **M5**：lazy 模式——`read_session` scoped 工具 + `form:'notice'` 消费臂 + `sessionReferenceMode` 切换；快照钉住 live-reference 提示。
 
