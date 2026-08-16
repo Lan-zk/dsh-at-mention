@@ -60,10 +60,20 @@ afterEach(() => {
 })
 
 describe('client styles', () => {
-  it('keeps the width and chip overrides on stable composer attributes', () => {
-    assert.ok(CLIENT_STYLES.includes("[data-composer-card] [role='listbox']:has([data-source])"))
+  it('scopes desktop menu layout to the at-mention sources', () => {
+    assert.ok(CLIENT_STYLES.includes('@media (min-width: 768px)'))
+    assert.ok(CLIENT_STYLES.includes(":has([data-source='会话'], [data-source='文件'])"))
+    assert.ok(CLIENT_STYLES.includes("[role='option'] > [aria-hidden] + span"))
+    assert.ok(CLIENT_STYLES.includes("[role='option'] > [aria-hidden] + span + span"))
+    assert.equal(CLIENT_STYLES.includes(":has([data-source])"), false)
+  })
+
+  it('keeps chip labels readable without styling unrelated text references', () => {
     assert.ok(CLIENT_STYLES.includes("[data-decoration='chip']"))
-    assert.ok(CLIENT_STYLES.includes("[data-decoration='text-ref']"))
+    assert.ok(CLIENT_STYLES.includes('color: var(--dsw-alias-label-primary)'))
+    assert.ok(CLIENT_STYLES.includes('text-overflow: ellipsis'))
+    assert.equal(CLIENT_STYLES.includes('font-size: 18px'), false)
+    assert.equal(CLIENT_STYLES.includes("[data-decoration='text-ref']"), false)
   })
 
   it('injects one plugin-owned style tag as a disposable effect', () => {
