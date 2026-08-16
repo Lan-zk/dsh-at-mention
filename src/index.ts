@@ -13,6 +13,7 @@ import z from '@deepseek-ai/schemastery'
 import SessionReferenceResolver from '@deepseek-ai/dsh-session-reference'
 import { applyApi } from './api.ts'
 import { applyConsumer } from './consumer.ts'
+import { applyReadSessionTool } from './tool.ts'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'at-mention'
@@ -111,5 +112,12 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     mode: resolved.sessionReferenceMode,
     maxReferences: resolved.maxReferences,
   })
+  if (resolved.sessionReferenceMode === 'reference') {
+    applyReadSessionTool(ctx, {
+      maxBytes: resolved.readPage.maxBytes,
+      maxTurns: resolved.readPage.maxTurns,
+      scope: resolved.sessionScope,
+    })
+  }
   applyApi(ctx, resolved)
 }

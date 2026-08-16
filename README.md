@@ -13,10 +13,13 @@ workspace. The design lives in [DESIGN.zh.md](./DESIGN.zh.md).
 - `@` + keyword lists other sessions in the workspace (title match, same-cwd
   scope by default); picking inserts a session chip that serializes to the
   canonical `@[label](dsh-session:…)` mention.
-- At `agent/pre-step`, mentions are rewritten to readable `@label` spans and,
-  in snapshot mode, a bounded untrusted snapshot of each referenced session
-  is injected before the user's message (max 3 distinct sessions, 64 KiB each
-  by default).
+- At `agent/pre-step`, mentions are rewritten to readable `@label` spans.
+  In snapshot mode (default), a bounded untrusted snapshot of each referenced
+  session is injected before the user's message (max 3 distinct sessions,
+  64 KiB each by default). In reference mode (`sessionReferenceMode:
+  reference`), only a live-reference notice is injected and the model reads
+  on demand through the per-session `read_session` tool (paged, workspace-
+  scoped).
 - Before send, the client probes every reference (session existence, file
   existence) and blocks the send with a visible error when a reference is
   stale — a live reference is never silently downgraded.
@@ -82,4 +85,10 @@ half rides the package.json `dsh.client` declaration.
 - The client cannot see the draft's chips (the source holds no draft state):
   duplicate chips and the 4th+ session chip are not flagged pre-send; the
   host deduplicates and surfaces an overflow notice row instead.
-- The lazy `read_session` mode ships with M5.
+- The lazy `read_session` mode: the injected notice is a `plugin/notice` row
+  (the closed `ContextForm` vocabulary has no reference form), so the
+  transcript row labels the plugin rather than the referenced titles; the
+  notice text itself carries labels and ids.
+- Run `pnpm run build` before `pnpm run test`: the built-bundle smoke
+  (`tests/bundle.test.js`) mounts `lib/index.js` and skips itself when the
+  artifact is absent.

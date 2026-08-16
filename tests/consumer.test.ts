@@ -178,3 +178,45 @@ describe('transformSnapshotMessages', () => {
     assert.equal(out[0], plain)
   })
 })
+
+describe('reference mode (lazy arm)', () => {
+  const lazy: ConsumerOptions = { mode: 'reference', maxReferences: 3 }
+
+  it('replaces the mention with a readable label and injects a live-reference notice, no snapshot', async () => {
+    const { ctx, resolver } = await harness()
+    const agent = fakeAgent(ctx, 'target')
+    const source = sourceSession(ctx, 'source')
+    const mention = formatSessionReferenceMention({ sessionId: SessionId(source.id), label: 'src' })
+    const out = await transformSnapshotMessages(agent, [userMessage(`use ${mention}`)], signal, resolver, silent, lazy)
+    assert.equal(out.length, 2)
+    const notice = out[0]
+    if (notice?.content[0]?.type !== 'text') throw new Error('expected text notice')
+    assert.equal(notice.source.kind, 'plugin')
+    assert.equal(notice.source.form, 'notice')
+    assert.ok(notice.content[0].text.includes('Live references to 1 other session(s)'))
+    assert.ok(notice.content[0].text.includes('src (source)'))
+    assert.ok(notice.content[0].text.includes('read_session'))
+    const readable = out[1]
+    if (readable?.content[0]?.type !== 'text') throw new Error('expected text message')
+    assert.equal(readable.content[0].text, 'use @src')
+  })
+
+  it('caps at maxReferences and names the overflow', async () => {
+    const { ctx, resolver } = await harness()
+    const agent = fakeAgent(ctx, 'target')
+    const mentions = ['a', 'b', 'c', 'd'].map((id) => {
+      sourceSession(ctx, id)
+      return formatSessionReferenceMention({ sessionId: SessionId(id), label: id })
+    })
+    const out = await transformSnapshotMessages(agent, [userMessage(`refs ${mentions.join(' ')}`)], signal, resolver, silent, lazy)
+    assert.equal(out.length, 3)
+    const live = out[0]
+    if (live?.content[0]?.type !== 'text') throw new Error('expected text notice')
+    assert.ok(live.content[0].text.includes('a (a)'))
+    assert.ok(!live.content[0].text.includes('(d)'))
+    const overflow = out[1]
+    if (overflow?.content[0]?.type !== 'text') throw new Error('expected text notice')
+    assert.ok(overflow.content[0].text.includes('beyond the limit'))
+    assert.ok(overflow.content[0].text.includes('d'))
+  })
+})
