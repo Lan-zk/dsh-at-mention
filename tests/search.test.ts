@@ -16,7 +16,8 @@ import type { AddDirRegistryLike } from '../src/search.ts'
 describe('escapeGlobQuery', () => {
   it('escapes ripgrep glob metacharacters', () => {
     assert.equal(escapeGlobQuery('a*b'), 'a\\*b')
-    assert.equal(escapeGlobQuery('a{b,c}'), 'a\\{b,c\\}')
+    assert.equal(escapeGlobQuery('a{b,c}'), 'a\\{b\\,c\\}')
+    assert.equal(escapeGlobQuery('a,b'), 'a\\,b')
     assert.equal(escapeGlobQuery('[x]?\\'), '\\[x\\]\\?\\\\')
   })
 
@@ -34,6 +35,7 @@ describe('buildSearchArgv', () => {
     assert.ok(argv.includes('--no-ignore'))
     assert.ok(argv.includes('--sort=modified'))
     assert.ok(argv.includes('--iglob={**/*conf*,**/*conf*/**}'))
+    assert.ok(buildSearchArgv('a,b', []).includes('--iglob={**/*a\\,b*,**/*a\\,b*/**}'))
     assert.equal(argv.at(-1), '--')
   })
 

@@ -65,13 +65,11 @@ export function sessionCandidates(
 ): SessionCandidate[] {
   const eligible = rows.filter(row => row.id !== currentId && !row.blank)
   const trimmed = query.trim()
-  const scoped = trimmed.length === 0
-    ? eligible
-    : eligible.filter(row => {
-      if (matchScore(row.displayTitle, trimmed) === 0) return false
-      if (scope === 'workspace') return row.cwd === currentCwd
-      return true
-    })
+  const scoped = eligible.filter(row => {
+    if (trimmed.length > 0 && matchScore(row.displayTitle, trimmed) === 0) return false
+    if (scope === 'workspace') return row.cwd === currentCwd
+    return true
+  })
   const ranked = scoped.toSorted((a, b) => {
     if (trimmed.length > 0) {
       const scoreDelta = matchScore(b.displayTitle, trimmed) - matchScore(a.displayTitle, trimmed)

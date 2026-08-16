@@ -22,6 +22,7 @@ import type {
 import { sessionCandidates, fileCandidates } from './candidates.ts'
 import type { SessionRowLike } from './candidates.ts'
 import { debounce, ApiError, resolveSession, searchFiles, statFile } from './host-api.ts'
+import { applyClientStyles } from './styles.ts'
 import { formatSessionReferenceMention } from './uri.ts'
 
 /** Client-half config slice (validated host-side; read with defaults here). */
@@ -51,6 +52,7 @@ interface FileRef {
  * @param config - config slice (defaults applied here).
  */
 export function apply(ctx: ClientContext, config: ClientConfig = {}): void {
+  applyClientStyles(ctx)
   const debounceMs = config.debounceMs ?? 100
   const cap = config.maxCandidates ?? 20
   const scope = config.sessionScope ?? 'workspace'

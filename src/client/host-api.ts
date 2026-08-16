@@ -62,13 +62,20 @@ export async function statFile(cwd: string, path: string, signal: AbortSignal): 
   return value.exists
 }
 
-/** Fire-and-forget debounce that always settles (abort resolves, never rejects). */
+/** Debounce that settles immediately on an already-aborted signal and cleans
+ * up both the timer and the abort listener when either path wins. */
 export async function debounce(signal: AbortSignal, ms: number): Promise<void> {
+  if (signal.aborted) return
   await new Promise<void>((resolve) => {
-    const timer = setTimeout(resolve, ms)
-    signal.addEventListener('abort', () => {
+    let settled = false
+    const settle = (): void => {
+      if (settled) return
+      settled = true
       clearTimeout(timer)
+      signal.removeEventListener('abort', settle)
       resolve()
-    }, { once: true })
+    }
+    const timer = setTimeout(settle, ms)
+    signal.addEventListener('abort', settle, { once: true })
   })
 }

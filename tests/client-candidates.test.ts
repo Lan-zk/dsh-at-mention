@@ -68,6 +68,15 @@ describe('sessionCandidates', () => {
     assert.ok(out.every(candidate => candidate.description?.includes('最近')))
   })
 
+  it('keeps the empty-query recommendations inside the workspace scope', () => {
+    const rows = [
+      row('h1', '本工作区最近', { cwd: '/w', updatedAt: 5 }),
+      row('h2', '其他工作区更新', { cwd: '/other', updatedAt: 9 }),
+    ]
+    const out = sessionCandidates(rows, 'self', '/w', 'workspace', '', 20)
+    assert.deepEqual(out.map(candidate => candidate.id), ['h1'])
+  })
+
   it('disambiguates duplicate titles with a short-id suffix', () => {
     const rows = [
       row('f-123456', '未命名', { updatedAt: 1 }),

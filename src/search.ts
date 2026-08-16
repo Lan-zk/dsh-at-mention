@@ -38,7 +38,7 @@ export interface AddDirRegistryLike {
  * @returns the glob-safe literal.
  */
 export function escapeGlobQuery(query: string): string {
-  return query.replace(/[\\*?{}\[\]]/gu, match => `\\${match}`)
+  return query.replace(/[\\*?{},[\]]/gu, match => `\\${match}`)
 }
 
 /**

@@ -5,7 +5,9 @@
     "tests/client-candidates.test.ts",
     "src/client/uri.ts",
     "src/client/candidates.ts",
-    "src/client/host-api.ts"
+    "src/client/host-api.ts",
+    "tests/client-styles.test.ts",
+    "src/client/styles.ts"
   ],
   "exclude": []
 }
