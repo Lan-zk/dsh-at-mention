@@ -165,8 +165,14 @@ function fileSource(ctx: ClientContext, debounceMs: number, cap: number): InputT
         data = await searchFiles(cwd, trimmed, signal)
       } catch (error: unknown) {
         if (signal.aborted) return []
-        if (error instanceof ApiError) return [errorCandidate('请稍后重试')]
-        return [errorCandidate(error instanceof Error ? error.message.slice(0, 80) : '请稍后重试')]
+        // Surface the real failure: the host error code/message rides the
+        // candidate description so the menu itself is the triage surface.
+        const detail = error instanceof ApiError
+          ? `${error.code} · ${error.message}`
+          : error instanceof Error
+            ? error.message.slice(0, 120)
+            : '未知错误'
+        return [errorCandidate(detail)]
       }
       if (signal.aborted) return []
       picked.clear()
