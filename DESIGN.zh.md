@@ -58,7 +58,7 @@ lazy 模式复用上游封闭 form 词汇（`kind:'plugin', form:'notice'`，不
 | F6 | `session-reference` 包：`encodeSessionReferenceUri`/`formatSessionReferenceMention`（`@[label](dsh-session:…)`，纯函数可 client 端重实现）、`parseSessionReferenceText`（提取并渲染可读 `@label`）、`SessionReferenceResolver.prepare(agent, content, references, signal)`（读快照、按预算投影、产出不可信前缀 + `<referenced-sessions>` JSON 的 `additionalContext`，`source: { kind: 'session-reference', form: 'recall', references: [...] }`）。注意：`prepare` 对 content 只做克隆回显，**不负责**把 URI 改写成 `@label`——改写是消费器先 `parseSessionReferenceText` 的职责。该包**未挂任何 bundle，无生产消费方** | [session-reference/src/index.ts](../deepseek-harness/packages/context/session-reference/src/index.ts)、[uri.ts](../deepseek-harness/packages/context/session-reference/src/uri.ts) |
 | F7 | 正确的消费缝是 `agent/pre-step` waterfall：payload `{ agent, messages, turn, step, signal }`，`next()` 后**改写 messages**；改写结果先落 `user/message` 日志再进模型请求——天然满足「模型可见即已记录」。`time-context` 是改写决策后追加消息的现成先例。⚠️ `ctx.on(…, { prepend: true })` 只决定**监听器执行顺序**（先执行、后处理他人结果），**不**改变 messages 数组内的插入位置——数组顺序由消费器显式构造 | [agent/runtime-types.ts](../deepseek-harness/packages/core/agent/src/runtime-types.ts)、[agent-loop/agent.ts preStep 与 turn](../deepseek-harness/packages/core/agent-loop/src/agent.ts)、[time-context/index.ts](../deepseek-harness/packages/context/time-context/src/index.ts) |
 | F8 | Web 端 `session.prompt` 是封闭硬编码 `RpcMethodMap`，树外插件不可扩展远程方法；树外 client→host 通道的既定路径是 `webServer.register({ kind: 'exact', path, handler })` HTTP 路由（返回 disposer） | [apiproxy/api/rpc-map.ts](../deepseek-harness/packages/host/apiproxy/src/api/rpc-map.ts)、[dsh-add-dir/src/api.ts](../dsh-add-dir/src/api.ts) |
-| F9 | 文件搜索后端可复用 npm 包 `@deepseek-ai/dsh-tool-fs-search` 的 `buildGlobCommand`/`runRipgrep`（ripgrep `--files`，行为与核心 glob 工具一致）；ripgrep 子进程需要 `subprocess` 服务 | [dsh-add-dir/src/shadow-search.ts](../dsh-add-dir/src/shadow-search.ts) |
+| F9 | 文件搜索后端复用 npm 包 `@deepseek-ai/dsh-tool-fs-search` 的 argv 纪律（`GLOB_VCS_EXCLUDES`、`RAW_OUTPUT_MAX_BYTES`/`SEARCH_*` 常量），但**不直接复用其 `runRipgrep`**：该包的 `resolveRgPath` 按进程 memoize，一次瞬时失败（安装中途、平台包暂缺）会粘住整个进程，且其启动失败包裹丢弃了 cause——本插件改为每次调用经 `createRequire` 现解析打包的 ripgrep 二进制（`@vscode/ripgrep` 为插件直接依赖）并通过 `subprocess` 服务直接 spawn，退出语义镜像核心（0=命中、1=无命中、其余报错且 message 携带 cause 链）；ripgrep 子进程需要 `subprocess` 服务 | [dsh-add-dir/src/shadow-search.ts](../dsh-add-dir/src/shadow-search.ts)（runRipgrep 复用先例）、[src/api.ts](src/api.ts) |
 | F10 | client 会话列表 `sessions.list` 快照含 `id/title/displayTitle/cwd/parentId/running/blank/updatedAt` 等字段——标题候选零 RPC；第三方 client 插件**没有** `remote.sessions` 面（remotes 只 mount commands/goals 等五个 namespace，正文搜索必须走自有 HTTP 端点，v1 不做） | [runtime/sessions/service.ts](../deepseek-harness/packages/client/runtime/src/client/sessions/service.ts)、[api/remotes/src/client/index.ts](../deepseek-harness/packages/api/remotes/src/client/index.ts) |
 | F11 | client 已能渲染 `session-reference` source 的注入消息：`contextProvenance` 识别为 `recall` 角色、标签为被引用会话标题（该分支只看 `kind`，不看 form） | [runtime/sessions/context-provenance.ts](../deepseek-harness/packages/client/runtime/src/client/sessions/context-provenance.ts) |
 | F12 | 每 agent 的 scoped 注册先例：`ctx.on('agent/created', ({ agent }) => …)` + `agent.ctx.plugin({ inject: ['tools'], … })` | [dsh-add-dir/src/shadow-tools.ts](../dsh-add-dir/src/shadow-tools.ts) |
@@ -157,12 +157,14 @@ apply(ctx)（inject: ['webServer']；可选读 ctx.get('subprocess')、ctx.get('
 ├─ ctx.plugin(SessionReferenceResolver, { maxReferenceBytes, maxReferences })   // Service 挂载形态，F6；sessionQuery 缺失时经 inject 等待/响亮失败
 ├─ HTTP（全部 ctx.effect 注册、返回 disposer，F8 模式）
 │   GET /api/at-mention.search-files?cwd=<…>&q=<…>
-│    校验 cwd/q（非空字符串、长度上限、无 NUL）→ buildGlobCommand + runRipgrep（F9）
+│    校验 cwd/q（非空字符串、长度上限、无 NUL）→ buildSearchArgv（F9 argv 纪律）+
+│      自持 spawn：每调用现解析打包 ripgrep 二进制，经 subprocess 服务直接运行（不复用核心 runRipgrep，见 F9）
 │    搜索根集合 = cwd + （includeAddedDirs 且 add-dir 在册时的全部目录）
 │    默认排除 .git .hg .svn .next .pnpm-store .turbo .yarn node_modules build coverage dist（《Codex 分析》§四.2 清单）
 │      + excludePatterns 追加；ripgrep 自身 ignore 规则照常生效
 │    返回 { files: [{ abs, rel, root }], truncated }（受 maxResults 与核心搜索超时上限约束）
-│    subprocess 缺失 → 503 { ok:false, error:{ code:'search-unavailable' } }
+│    subprocess 缺失或打包 ripgrep 不可解析 → 503 { ok:false, error:{ code:'search-unavailable', message: 真实原因 } }
+│    启动/运行失败 → 500，message 携带 cause 链（客户端菜单内直接可见）
 │   GET /api/at-mention.resolve-session?id=<…>      // 会话存在性探活（sessionQuery 只读；返回 200 { exists }，服务缺失 → 503）
 │   GET /api/at-mention.stat-file?cwd=<…>&path=<…>  // 文件存在性探活（fs stat 只读；path 必须落在搜索根集合内，否则 403；返回 200 { exists }）
 └─ 会话引用消费器（§6）：ctx.on('agent/pre-step', handler, { prepend: true })，按 sessionReferenceMode 分派两臂

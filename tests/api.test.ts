@@ -98,6 +98,79 @@ describe('search-files validation', () => {
   })
 })
 
+describe('search-files execution', () => {
+  /** Minimal subprocess seam mock: one scripted run, argv captured. */
+  function mockSubprocess(options: {
+    exitCode?: number
+    stdoutText?: string
+    stderrText?: string
+    fail?: unknown
+    argv?: string[]
+  } = {}) {
+    const exitCode = options.exitCode ?? 0
+    const stream = (text: string) => ({
+      readFrom: (_fromByte: number) => ({ text, lossy: false }),
+    })
+    return {
+      spawn(spec: { argv: string[]; cwd: string; stdio: unknown; graceMs: number; signal: AbortSignal }) {
+        if (options.argv !== undefined) options.argv.push(...spec.argv)
+        assert.equal(spec.argv[1], '--no-config')
+        assert.equal(spec.argv[0]?.endsWith('rg'), true)
+        return {
+          done: options.fail === undefined
+            ? Promise.resolve({ exitCode, signal: null })
+            : Promise.reject(options.fail),
+          collected: {
+            stdout: stream(options.stdoutText ?? ''),
+            stderr: stream(options.stderrText ?? ''),
+          },
+        }
+      },
+    }
+  }
+
+  it('runs the packaged ripgrep through subprocess and returns absolute files', async () => {
+    const h = await harness()
+    const argv: string[] = []
+    h.ctx.provide('subprocess', mockSubprocess({ stdoutText: '/w/a.ts\n/w/sub/b.ts\n/w/a.ts\n', argv }))
+    const result = await h.invoke('/api/at-mention.search-files', '/api/at-mention.search-files?cwd=%2Fw&q=conf')
+    assert.equal(result.status, 200)
+    const value = (result.body as { value: { files: Array<{ abs: string }>; truncated: boolean } }).value
+    assert.deepEqual(value.files.map(file => file.abs), ['/w/a.ts', '/w/sub/b.ts'])
+    assert.equal(value.truncated, false)
+    assert.ok(argv.join(' ').includes('--iglob='))
+  })
+
+  it('returns an empty file list for ripgrep exit 1 (no matches)', async () => {
+    const h = await harness()
+    h.ctx.provide('subprocess', mockSubprocess({ exitCode: 1 }))
+    const result = await h.invoke('/api/at-mention.search-files', '/api/at-mention.search-files?cwd=%2Fw&q=zzz')
+    assert.equal(result.status, 200)
+    assert.deepEqual((result.body as { value: { files: string[] } }).value.files, [])
+  })
+
+  it('surfaces the launch cause chain when the spawn handle rejects', async () => {
+    const h = await harness()
+    const cause = new Error('ENOENT: no such file')
+    h.ctx.provide('subprocess', mockSubprocess({ fail: new Error('spawn failed', { cause }) }))
+    const result = await h.invoke('/api/at-mention.search-files', '/api/at-mention.search-files?cwd=%2Fw&q=conf')
+    assert.equal(result.status, 500)
+    const error = (result.body as { error: { code: string; message: string } }).error
+    assert.equal(error.code, 'internal')
+    assert.ok(error.message.includes('spawn failed'))
+    assert.ok(error.message.includes('ENOENT: no such file'))
+  })
+
+  it('reports a non-zero exit with the stderr excerpt', async () => {
+    const h = await harness()
+    h.ctx.provide('subprocess', mockSubprocess({ exitCode: 2, stderrText: 'error parsing glob\n' }))
+    const result = await h.invoke('/api/at-mention.search-files', '/api/at-mention.search-files?cwd=%2Fw&q=conf')
+    assert.equal(result.status, 500)
+    assert.ok((result.body as { error: { message: string } }).error.message.includes('exit 2'))
+    assert.ok((result.body as { error: { message: string } }).error.message.includes('error parsing glob'))
+  })
+})
+
 describe('resolve-session', () => {
   it('probes existence through sessionQuery', async () => {
     const h = await harness()
