@@ -291,7 +291,7 @@ async (payload, next) => {
 - **M2（已完成，2026-08-16）**：host 半 snapshot 模式——resolver 挂载、pre-step 消费器、search-files / resolve-session / stat-file 三条路由；单测 28 例全绿（URI 解析、预算与降级路径、路由校验、作用域校验、HMR 注册形态）。
 - **M3（已完成，2026-08-16）**：client 半——两个 `@` 源（`会话`/`文件`：候选/防抖/排序/消歧/序列化/发送前探活/错误候选）+ client 端 URI 编码（`btoa` 替代 `Buffer`）；跨端 round-trip 与候选纯逻辑测试并入全量 44 例。
 - **M4（已完成，2026-08-16，含交接项）**：组装快照测试（注入快照/降级提示/live 提示的持久化形态钉住）+ 构建产物冒烟（`tests/bundle.test.js` 挂载 `lib/index.js` 真服务组合，双模式）。
-  **交接项（需用户环境）**：真实 API 冒烟与内置浏览器回归——`dsh plugin --profile <name> add ./dsh-at-mention` → `--dump-config` 验证层 → 启动后验证菜单分组/chip/转录/探活与三条 HTTP 路由。
+  **交接项（需用户环境）**：真实 API 冒烟与内置浏览器回归——`dsh plugin --profile web add .` → `dsh --profile web --dump-config` 验证层 → 启动后验证菜单分组/chip/转录/探活与三条 HTTP 路由。
 - **M5（已完成，2026-08-16）**：lazy 模式——`read_session` scoped 工具（seq 游标分页、字节/turn 双上限、cwd 白名单、自引用/越界/不可读闭合错误）+ `form:'notice'` live 消费臂 + `sessionReferenceMode` 切换；live 提示文本快照钉住。
 
 ## 11. 测试计划（对齐 04-plugin-workflow §4）
