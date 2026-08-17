@@ -1,12 +1,12 @@
 /**
  * dsh-at-mention, browser half: two `@` trigger sources over the input
- * trigger pipeline. 会话 inserts session chips that serialize to the
- * canonical dsh-session mention (existence-probed before send); 文件 inserts
- * live path-reference chips that serialize to the absolute path
- * (existence-probed inside the workspace roots before send). Group titles
- * are hardcoded Chinese source names: the slash.menu locale namespace is
- * single-owner, so a third-party plugin cannot register localized titles
- * (DESIGN §4.5).
+ * trigger pipeline. 会话 and 文件 both insert plain-text references (a visible
+ * `@label` plus an invisible metadata suffix). The atomic module makes each
+ * reference behave as one block for caret/delete/click, and the host consumer
+ * restores the model-facing projection (canonical session mention / absolute
+ * file path). Group titles are hardcoded Chinese source names: the slash.menu
+ * locale namespace is single-owner, so a third-party plugin cannot register
+ * localized titles (DESIGN §4.5).
  * @module dsh-at-mention/src/client
  */
 
@@ -21,9 +21,10 @@ import type {
 } from '@deepseek-ai/dsh-client-ui-input-trigger/client'
 import { sessionCandidates, fileCandidates } from './candidates.ts'
 import type { SessionRowLike } from './candidates.ts'
-import { debounce, ApiError, resolveSession, searchFiles, statFile } from './host-api.ts'
+import { debounce, ApiError, searchFiles } from './host-api.ts'
 import { applyClientStyles } from './styles.ts'
-import { formatSessionReferenceMention } from './uri.ts'
+import { applyAtomicReferences } from './atomic.ts'
+import { encodeFileReference, encodeSessionReference } from './reference-format.ts'
 
 /** Client-half config slice (validated host-side; read with defaults here). */
 export interface ClientConfig {
@@ -53,6 +54,7 @@ interface FileRef {
  */
 export function apply(ctx: ClientContext, config: ClientConfig = {}): void {
   applyClientStyles(ctx)
+  applyAtomicReferences(ctx)
   const debounceMs = config.debounceMs ?? 100
   const cap = config.maxCandidates ?? 20
   const scope = config.sessionScope ?? 'workspace'
@@ -108,38 +110,9 @@ function sessionSource(ctx: ClientContext, cap: number, scope: 'workspace' | 'al
       if (id === undefined) return undefined
       const label = titleOf(ctx, id)
       return {
-        insert: {
-          source: '会话',
-          ref: id,
-          label,
-          clipboardText: `@${label}`,
-        },
+        text: `${encodeSessionReference(label, id)} `,
       }
     },
-    codec: {
-      clipboardText: ref => `@${titleOf(ctx, ref)}`,
-      serialize: async (ref, signal) => {
-        const label = titleOf(ctx, ref)
-        const exists = await resolveSession(ref, signal)
-        if (!exists) {
-          throw new Error(`引用的会话已不可用（${label}），请移除该引用后重试`)
-        }
-        return formatSessionReferenceMention(ref, label)
-      },
-    },
-  }
-}
-
-/** Parse a file chip ref; malformed refs pass through unchanged on serialize. */
-function parseFileRef(ref: string): FileRef | undefined {
-  try {
-    const value = JSON.parse(ref) as unknown
-    if (typeof value !== 'object' || value === null) return undefined
-    const { abs, rel, cwd } = value as Partial<FileRef>
-    if (typeof abs !== 'string' || typeof rel !== 'string' || typeof cwd !== 'string') return undefined
-    return { abs, rel, cwd }
-  } catch {
-    return undefined
   }
 }
 
@@ -193,25 +166,8 @@ function fileSource(ctx: ClientContext, debounceMs: number, cap: number): InputT
       const file = picked.get(candidate.name)
       if (file === undefined) return undefined
       return {
-        insert: {
-          source: '文件',
-          ref: JSON.stringify(file),
-          label: file.rel,
-          clipboardText: file.rel,
-        },
+        text: `${encodeFileReference(file.rel, file.abs)} `,
       }
-    },
-    codec: {
-      clipboardText: ref => parseFileRef(ref)?.rel ?? ref,
-      serialize: async (ref, signal) => {
-        const file = parseFileRef(ref)
-        if (file === undefined) return ref
-        const exists = await statFile(file.cwd, file.abs, signal)
-        if (!exists) {
-          throw new Error(`引用的文件已不存在或已移动（${file.rel}），请移除该引用后重试`)
-        }
-        return file.abs
-      },
     },
   }
 }

@@ -76,6 +76,13 @@ describe('client styles', () => {
     assert.equal(CLIENT_STYLES.includes("[data-decoration='text-ref']"), false)
   })
 
+  it('styles plain-text at-mention references with file and derived session colours', () => {
+    assert.ok(CLIENT_STYLES.includes("[data-at-ref]"))
+    assert.ok(CLIENT_STYLES.includes('color: #689efe'))
+    assert.ok(CLIENT_STYLES.includes("[data-at-ref][data-at-type='session']"))
+    assert.ok(CLIENT_STYLES.includes('color: #9e8cfe'))
+  })
+
   it('injects one plugin-owned style tag as a disposable effect', () => {
     const { appended } = installFakeDocument()
     const disposers: Array<() => void> = []

@@ -10,6 +10,7 @@ import SessionReferenceResolver, { formatSessionReferenceMention } from '@deepse
 import type { SessionReferenceResolver as ResolverType } from '@deepseek-ai/dsh-session-reference'
 import { transformSnapshotMessages } from '../src/consumer.ts'
 import type { ConsumerOptions } from '../src/consumer.ts'
+import { encodeSessionReference } from '../src/shared/reference-format.ts'
 
 /** Quiet logger for degrade paths. */
 const silent = { warn: () => {} }
@@ -85,6 +86,23 @@ describe('transformSnapshotMessages', () => {
     if (context?.content[0]?.type !== 'text') throw new Error('expected text context')
     assert.equal(context.source.kind, 'session-reference')
     assert.ok(context.content[0].text.includes('untrusted, read-only snapshot'))
+    assert.ok(context.content[0].text.includes('source user line'))
+    if (readable?.content[0]?.type !== 'text') throw new Error('expected text message')
+    assert.equal(readable.content[0].text, 'compare @源会话 now')
+    assert.equal(readable.source.kind, 'user')
+  })
+
+  it('decodes an encoded plain-text session reference and injects the snapshot context', async () => {
+    const { ctx, resolver } = await harness()
+    const agent = fakeAgent(ctx, 'target')
+    const source = sourceSession(ctx, 'source')
+    const encoded = encodeSessionReference('源会话', source.id)
+    const out = await transformSnapshotMessages(agent, [userMessage(`compare ${encoded} now`)], signal, resolver, silent, options)
+    assert.equal(out.length, 2)
+    const context = out[0]
+    const readable = out[1]
+    if (context?.content[0]?.type !== 'text') throw new Error('expected text context')
+    assert.equal(context.source.kind, 'session-reference')
     assert.ok(context.content[0].text.includes('source user line'))
     if (readable?.content[0]?.type !== 'text') throw new Error('expected text message')
     assert.equal(readable.content[0].text, 'compare @源会话 now')

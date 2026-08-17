@@ -27,6 +27,8 @@ import {
   SessionReferenceResolver,
 } from '@deepseek-ai/dsh-session-reference'
 import type { SessionReferenceInput } from '@deepseek-ai/dsh-session-reference'
+import type { SessionId } from '@deepseek-ai/dsh-session'
+import { cleanEncodedReferences, parseEncodedReferences } from './shared/reference-format.ts'
 
 /** Durable plugin identity stamped into notice rows. */
 const PLUGIN_NAME = 'at-mention'
@@ -97,9 +99,17 @@ export async function transformSnapshotMessages(
       out.push(message)
       continue
     }
+    const extraReferences: SessionReferenceInput[] = []
     const content = message.content.map((block) => {
       if (block.type !== 'text') return block
-      const parsed = parseSessionReferenceText(block.text)
+      const cleaned = cleanEncodedReferences(block.text)
+      const encoded = parseEncodedReferences(block.text)
+      for (const reference of encoded) {
+        if (reference.type === 'session') {
+          extraReferences.push({ sessionId: reference.ref as SessionId, label: reference.label })
+        }
+      }
+      const parsed = parseSessionReferenceText(cleaned)
       return { ...block, text: parsed.text }
     })
     if (isDeepEqualContent(content, message.content)) {
@@ -107,7 +117,7 @@ export async function transformSnapshotMessages(
       continue
     }
     const readable = createUserMessage({ content, source: message.source })
-    const { kept, degraded } = partitionReferences(agent, message, options.maxReferences)
+    const { kept, degraded } = partitionReferences(agent, message, options.maxReferences, extraReferences)
     if (options.mode !== 'snapshot') {
       const rows: UserMessage[] = []
       if (kept.length > 0) rows.push(liveReferenceNotice(kept))
@@ -126,8 +136,9 @@ function partitionReferences(
   agent: Agent,
   message: UserMessage,
   maxReferences: number,
+  extraReferences: readonly SessionReferenceInput[] = [],
 ): { kept: SessionReferenceInput[]; degraded: string[] } {
-  const references = collectReferences(message.content)
+  const references = [...collectReferences(message.content), ...extraReferences]
   const kept: SessionReferenceInput[] = []
   const degraded: string[] = []
   const seen = new Set<string>()

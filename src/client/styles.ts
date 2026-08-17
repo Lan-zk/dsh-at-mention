@@ -21,11 +21,10 @@ export const CLIENT_STYLE_ID = 'dsh-at-mention/client-styles'
  * candidate label receives the remaining row width while trailing metadata
  * stays secondary and capped.
  *
- * Chips: reference chips have a fixed U+FFFC advance that must not change.
- * The absolutely positioned label therefore keeps the host geometry, but
- * uses a readable host text token and a conventional leading ellipsis instead
- * of centre-clipping both ends. The host owns all chip paint and text-ref
- * presentation so this plugin does not restyle unrelated reference sources.
+ * Plain-text references: the plugin inserts ordinary `@label` text plus an
+ * invisible metadata suffix. The atomic module paints the visible label with
+ * source-specific colours; these rules keep the paint looking like normal
+ * text (no chip background, no pill shape).
  */
 export const CLIENT_STYLES = `
 @media (min-width: 768px) {
@@ -67,6 +66,17 @@ export const CLIENT_STYLES = `
   [data-composer-card] [data-decoration='chip'][data-invalid] > span {
     color: var(--dsw-alias-state-error-primary);
   }
+}
+
+[data-composer-card] [data-input-backdrop] [data-at-ref] {
+  color: #689efe;
+  background: transparent;
+  border-radius: 0;
+  font-weight: inherit;
+}
+
+[data-composer-card] [data-input-backdrop] [data-at-ref][data-at-type='session'] {
+  color: #9e8cfe;
 }
 `
 
