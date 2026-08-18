@@ -68,9 +68,23 @@ describe('client styles', () => {
     assert.equal(CLIENT_STYLES.includes(":has([data-source])"), false)
   })
 
-  it('does not restyle unrelated chip sources', () => {
-    assert.equal(CLIENT_STYLES.includes("[data-decoration='chip']"), false)
+  it('styles only at-mention chips as invisible text, never unrelated chips', () => {
+    assert.ok(CLIENT_STYLES.includes("[data-source='文件']"))
+    assert.ok(CLIENT_STYLES.includes("[data-source='会话']"))
+    assert.ok(CLIENT_STYLES.includes("background: transparent"))
+    assert.ok(CLIENT_STYLES.includes("border-radius: 0"))
+    // No bare, unscoped chip rule and no legacy data-at-ref rule.
+    assert.equal(CLIENT_STYLES.includes("[data-decoration='chip'] {"), false)
+    assert.equal(CLIENT_STYLES.includes("[data-decoration='chip'] > span"), false)
     assert.equal(CLIENT_STYLES.includes('[data-at-ref]'), false)
+  })
+
+  it('uses theme-aware colours with a distinct session colour', () => {
+    assert.ok(CLIENT_STYLES.includes('--dsh-at-mention-file-color'))
+    assert.ok(CLIENT_STYLES.includes('--dsh-at-mention-session-color'))
+    assert.ok(CLIENT_STYLES.includes('body[data-ds-dark-theme]'))
+    assert.ok(CLIENT_STYLES.includes('var(--dsh-at-mention-file-color)'))
+    assert.ok(CLIENT_STYLES.includes('var(--dsh-at-mention-session-color)'))
   })
 
   it('injects one plugin-owned style tag as a disposable effect', () => {
