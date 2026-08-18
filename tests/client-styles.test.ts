@@ -65,6 +65,7 @@ describe('client styles', () => {
     assert.ok(CLIENT_STYLES.includes(":has([data-source='会话'], [data-source='文件'])"))
     assert.ok(CLIENT_STYLES.includes("[role='option'] > [aria-hidden] + span"))
     assert.ok(CLIENT_STYLES.includes("[role='option'] > [aria-hidden] + span + span"))
+    assert.ok(CLIENT_STYLES.includes('text-overflow: ellipsis'))
     assert.equal(CLIENT_STYLES.includes(":has([data-source])"), false)
   })
 

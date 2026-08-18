@@ -70,6 +70,9 @@ body[data-ds-dark-theme] {
     [role='option'] > [aria-hidden] + span + span {
     flex: 0 1 auto;
     max-width: 34%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 

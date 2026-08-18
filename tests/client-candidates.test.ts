@@ -116,7 +116,7 @@ describe('fileCandidates', () => {
     ]
     const out = fileCandidates(rows, 'config', 20)
     assert.deepEqual(out.map(candidate => candidate.name), ['config.ts · 主', 'config.ts · src/deep'])
-    assert.deepEqual(out[1]?.description, 'src/deep')
+    assert.deepEqual(out[1]?.description, 'src/deep/config.ts')
   })
 
   it('caps the result', () => {
@@ -144,12 +144,12 @@ describe('fileCandidates', () => {
     assert.ok(out.every(candidate => candidate.description?.includes('主') || candidate.description?.includes('lib')))
   })
 
-  it('describes the parent directory and omits description for top-level single-root files', () => {
+  it('describes the full relative path and omits description for top-level single-root files', () => {
     const rows = [files('src/a.ts'), files('top.ts')]
     const out = fileCandidates(rows, '', 20)
     assert.equal(out[0]?.name, 'top.ts')
     assert.equal(out[0]?.description, undefined)
     assert.equal(out[1]?.name, 'a.ts')
-    assert.equal(out[1]?.description, 'src')
+    assert.equal(out[1]?.description, 'src/a.ts')
   })
 })

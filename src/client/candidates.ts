@@ -183,8 +183,11 @@ export function fileCandidates(
       : base
     return {
       name,
+      // Short basename as the primary label; the full relative path (and,
+      // across roots, the root alias) rides the secondary line so users can
+      // pick confidently without widening the label.
       ...(multiRoot || dir !== undefined ? {
-        description: [multiRoot ? row.root : undefined, dir].filter((part): part is string => part !== undefined).join(' · '),
+        description: [multiRoot ? row.root : undefined, rel].filter((part): part is string => part !== undefined).join(' · '),
       } : {}),
       icon: '📄',
       abs: row.abs,

@@ -1,6 +1,6 @@
 {
   "name": "dsh-at-mention",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "type": "module",
   "description": "@-mention context references for DeepSeek Harness: workspace file search and cross-session references from the web composer.",
   "license": "MIT",
