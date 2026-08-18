@@ -98,14 +98,25 @@ describe('sessionCandidates', () => {
 describe('fileCandidates', () => {
   const files = (rel: string, root = '主', abs = `/w/${rel}`) => ({ abs, rel, root })
 
-  it('ranks path prefix above segment prefix and sorts shallower first', () => {
+  it('ranks path prefix above segment prefix and sorts shallower first, with basename labels', () => {
     const rows = [
       files('src/deep/config.ts'),
       files('config-tools/readme.md'),
       files('config.ts'),
     ]
     const out = fileCandidates(rows, 'config', 20)
-    assert.deepEqual(out.map(candidate => candidate.name), ['config.ts', 'config-tools/readme.md', 'src/deep/config.ts'])
+    assert.deepEqual(out.map(candidate => candidate.name), ['config.ts · 主', 'readme.md', 'config.ts · src/deep'])
+    assert.deepEqual(out.map(candidate => candidate.abs), ['/w/config.ts', '/w/config-tools/readme.md', '/w/src/deep/config.ts'])
+  })
+
+  it('normalizes Windows-style relative paths for scoring and descriptions', () => {
+    const rows = [
+      { abs: 'E:\\w\\src\\deep\\config.ts', rel: 'src\\deep\\config.ts', root: '主' },
+      { abs: 'E:\\w\\config.ts', rel: 'config.ts', root: '主' },
+    ]
+    const out = fileCandidates(rows, 'config', 20)
+    assert.deepEqual(out.map(candidate => candidate.name), ['config.ts · 主', 'config.ts · src/deep'])
+    assert.deepEqual(out[1]?.description, 'src/deep')
   })
 
   it('caps the result', () => {
@@ -120,9 +131,10 @@ describe('fileCandidates', () => {
     ]
     const out = fileCandidates(rows, 'a', 20)
     assert.equal(out[0]?.abs, '/w/a.ts')
+    assert.equal(out[0]?.name, 'a.ts · 主')
   })
 
-  it('disambiguates duplicate rel paths with the root alias and shows roots when multi-root', () => {
+  it('disambiguates duplicate basenames with the root alias when the directory is shared', () => {
     const rows = [
       files('same.ts', '主', '/w/same.ts'),
       files('same.ts', 'lib', '/lib/same.ts'),
@@ -137,7 +149,7 @@ describe('fileCandidates', () => {
     const out = fileCandidates(rows, '', 20)
     assert.equal(out[0]?.name, 'top.ts')
     assert.equal(out[0]?.description, undefined)
-    assert.equal(out[1]?.name, 'src/a.ts')
+    assert.equal(out[1]?.name, 'a.ts')
     assert.equal(out[1]?.description, 'src')
   })
 })

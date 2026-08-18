@@ -159,6 +159,6 @@ export function toFileView(roots: readonly string[], abs: string): FileView {
 
 /** Directory basename, or the root itself for the filesystem root. */
 function basenameOf(path: string): string {
-  const base = path.split(sep).filter(part => part.length > 0).at(-1)
+  const base = path.split(/[\\/]/).filter(part => part.length > 0).at(-1)
   return base ?? path
 }

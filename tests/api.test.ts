@@ -115,7 +115,7 @@ describe('search-files execution', () => {
       spawn(spec: { argv: string[]; cwd: string; stdio: unknown; graceMs: number; signal: AbortSignal }) {
         if (options.argv !== undefined) options.argv.push(...spec.argv)
         assert.equal(spec.argv[1], '--no-config')
-        assert.equal(spec.argv[0]?.endsWith('rg'), true)
+        assert.ok(spec.argv[0]?.endsWith('rg') || spec.argv[0]?.endsWith('rg.exe'))
         return {
           done: options.fail === undefined
             ? Promise.resolve({ exitCode, signal: null })

@@ -57,6 +57,20 @@ interface SessionQueryLike {
   }>
 }
 
+/** Best-effort session title from the live session store's title events. */
+function sessionTitleOf(ctx: Context, id: string): string | undefined {
+  const sessions = ctx.get('sessions') as { get?(id: ReturnType<typeof SessionId>): { events: readonly { type: string; data?: { title?: unknown } }[] } | undefined } | undefined
+  const session = sessions?.get?.(SessionId(id))
+  if (session === undefined) return undefined
+  for (let i = session.events.length - 1; i >= 0; i--) {
+    const event = session.events[i]
+    if (event?.type === 'session/title' && typeof event.data?.title === 'string' && event.data.title.length > 0) {
+      return event.data.title
+    }
+  }
+  return undefined
+}
+
 /** Project one surface event into a readable turn, or undefined for non-message events. */
 function projectTurn(event: { seq: number; type: string; data: { content?: Array<{ type: string; text?: string }>; message?: { content?: Array<{ type: string; text?: string }> } } }): { seq: number; turn: { role: 'user' | 'assistant'; text: string } } | undefined {
   let role: 'user' | 'assistant'
@@ -200,10 +214,11 @@ export function readSessionTool(ctx: Context, agent: Agent, options: ReadSession
         if (from === null) from = projected.seq
         through = projected.seq
       }
+      const title = sessionTitleOf(ctx, args.session_id)
       return {
         ok: true,
         session_id: args.session_id,
-        label: args.session_id,
+        label: title ?? args.session_id,
         page: {
           ...(from === null ? {} : { from_seq: String(from) }),
           ...(through === null ? {} : { through_seq: String(through) }),

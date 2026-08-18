@@ -97,7 +97,7 @@ describe('durable transcript shapes', () => {
     assert.equal(notice.source.kind, 'plugin')
     assert.equal(notice.source.form, 'notice')
     assert.ok((notice.source.summary as string).length <= 120)
-    assert.ok((notice.source.summary as string).startsWith('Referenced session content could not be loaded'))
+    assert.ok((notice.source.summary as string).startsWith('被引用的会话内容无法加载'))
   })
 
   it('pins the live-reference notice summary in reference mode', async () => {
@@ -114,6 +114,6 @@ describe('durable transcript shapes', () => {
     if (notice === undefined) throw new Error('missing notice row')
     assert.equal(notice.source.kind, 'plugin')
     assert.equal(notice.source.form, 'notice')
-    assert.equal(notice.source.summary, 'Live references: 源会话')
+    assert.equal(notice.source.summary, '活引用：源会话')
   })
 })

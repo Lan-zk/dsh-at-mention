@@ -68,19 +68,9 @@ describe('client styles', () => {
     assert.equal(CLIENT_STYLES.includes(":has([data-source])"), false)
   })
 
-  it('keeps chip labels readable without styling unrelated text references', () => {
-    assert.ok(CLIENT_STYLES.includes("[data-decoration='chip']"))
-    assert.ok(CLIENT_STYLES.includes('color: var(--dsw-alias-label-primary)'))
-    assert.ok(CLIENT_STYLES.includes('text-overflow: ellipsis'))
-    assert.equal(CLIENT_STYLES.includes('font-size: 18px'), false)
-    assert.equal(CLIENT_STYLES.includes("[data-decoration='text-ref']"), false)
-  })
-
-  it('styles plain-text at-mention references with file and derived session colours', () => {
-    assert.ok(CLIENT_STYLES.includes("[data-at-ref]"))
-    assert.ok(CLIENT_STYLES.includes('color: #689efe'))
-    assert.ok(CLIENT_STYLES.includes("[data-at-ref][data-at-type='session']"))
-    assert.ok(CLIENT_STYLES.includes('color: #9e8cfe'))
+  it('does not restyle unrelated chip sources', () => {
+    assert.equal(CLIENT_STYLES.includes("[data-decoration='chip']"), false)
+    assert.equal(CLIENT_STYLES.includes('[data-at-ref]'), false)
   })
 
   it('injects one plugin-owned style tag as a disposable effect', () => {

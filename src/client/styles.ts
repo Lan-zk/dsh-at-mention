@@ -5,6 +5,11 @@
  * instead of forking their components. Selectors use the stable
  * `data-composer-card` / `data-decoration` attributes published by the
  * composer DOM; no CSS-module hashes are referenced.
+ *
+ * Chip labels rely on the host's default chip presentation. This plugin
+ * deliberately does not restyle `[data-decoration='chip']` globally: those
+ * selectors would also affect other plugins' chips, which is exactly the
+ * cross-plugin interference this review removed.
  * @module dsh-at-mention/src/client/styles
  */
 
@@ -20,11 +25,6 @@ export const CLIENT_STYLE_ID = 'dsh-at-mention/client-styles'
  * stretched to the composer card's border box. On desktop, the primary
  * candidate label receives the remaining row width while trailing metadata
  * stays secondary and capped.
- *
- * Plain-text references: the plugin inserts ordinary `@label` text plus an
- * invisible metadata suffix. The atomic module paints the visible label with
- * source-specific colours; these rules keep the paint looking like normal
- * text (no chip background, no pill shape).
  */
 export const CLIENT_STYLES = `
 @media (min-width: 768px) {
@@ -48,35 +48,6 @@ export const CLIENT_STYLES = `
     flex: 0 1 auto;
     max-width: 34%;
   }
-
-  [data-composer-card] [data-decoration='chip'] > span {
-    display: block;
-    color: var(--dsw-alias-label-primary);
-    font-size: inherit;
-    font-weight: 500;
-    letter-spacing: normal;
-    text-align: left;
-    text-overflow: ellipsis;
-  }
-
-  [data-composer-card] [data-decoration='chip'][data-invalid] {
-    opacity: 1;
-  }
-
-  [data-composer-card] [data-decoration='chip'][data-invalid] > span {
-    color: var(--dsw-alias-state-error-primary);
-  }
-}
-
-[data-composer-card] [data-input-backdrop] [data-at-ref] {
-  color: #689efe;
-  background: transparent;
-  border-radius: 0;
-  font-weight: inherit;
-}
-
-[data-composer-card] [data-input-backdrop] [data-at-ref][data-at-type='session'] {
-  color: #9e8cfe;
 }
 `
 

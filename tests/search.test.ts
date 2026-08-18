@@ -1,5 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
+import { join, sep } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import {
   DEFAULT_EXCLUDES,
@@ -59,14 +60,14 @@ describe('isPathUnder', () => {
 
 describe('toDisplayPath', () => {
   it('renders workspace-relative paths and passes outsiders through', () => {
-    assert.equal(toDisplayPath('/w', '/w/src/a.ts'), 'src/a.ts')
+    assert.equal(toDisplayPath('/w', '/w/src/a.ts'), `src${sep}a.ts`)
     assert.equal(toDisplayPath('/w', '/elsewhere/a.ts'), '/elsewhere/a.ts')
   })
 })
 
 describe('toAbsolutePath', () => {
   it('joins relative ripgrep output against the workdir, keeps absolute lines', () => {
-    assert.equal(toAbsolutePath('src/a.ts', '/w'), '/w/src/a.ts')
+    assert.equal(toAbsolutePath('src/a.ts', '/w'), join('/w', 'src/a.ts'))
     assert.equal(toAbsolutePath('/else/a.ts', '/w'), '/else/a.ts')
   })
 })
@@ -74,7 +75,7 @@ describe('toAbsolutePath', () => {
 describe('toFileView', () => {
   it('labels primary-root files 主 and added-root files by basename', () => {
     const roots = ['/w', '/lib']
-    assert.deepEqual(toFileView(roots, '/w/src/a.ts'), { abs: '/w/src/a.ts', rel: 'src/a.ts', root: '主' })
+    assert.deepEqual(toFileView(roots, '/w/src/a.ts'), { abs: '/w/src/a.ts', rel: `src${sep}a.ts`, root: '主' })
     assert.deepEqual(toFileView(roots, '/lib/a.ts'), { abs: '/lib/a.ts', rel: 'a.ts', root: 'lib' })
     assert.deepEqual(toFileView(roots, '/else/a.ts'), { abs: '/else/a.ts', rel: '/else/a.ts', root: '其他' })
   })

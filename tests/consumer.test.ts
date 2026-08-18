@@ -140,7 +140,7 @@ describe('transformSnapshotMessages', () => {
     const notice = out[1]
     if (notice?.content[0]?.type !== 'text') throw new Error('expected text notice')
     assert.ok(notice.content[0].text.includes('d'))
-    assert.ok(notice.content[0].text.includes('beyond the limit'))
+    assert.ok(notice.content[0].text.includes('超过 3 条上限'))
     const readable = out[2]
     if (readable?.content[0]?.type !== 'text') throw new Error('expected text message')
     assert.equal(readable.content[0].text, 'refs @a @b @c @d')
@@ -169,7 +169,7 @@ describe('transformSnapshotMessages', () => {
     const notice = out[0]
     if (notice?.content[0]?.type !== 'text') throw new Error('expected text notice')
     assert.equal(notice.source.kind, 'plugin')
-    assert.ok(notice.content[0].text.includes('could not be loaded'))
+    assert.ok(notice.content[0].text.includes('无法加载'))
     const readable = out[1]
     if (readable?.content[0]?.type !== 'text') throw new Error('expected text message')
     assert.equal(readable.content[0].text, 'use @ghost')
@@ -211,7 +211,7 @@ describe('reference mode (lazy arm)', () => {
     if (notice?.content[0]?.type !== 'text') throw new Error('expected text notice')
     assert.equal(notice.source.kind, 'plugin')
     assert.equal(notice.source.form, 'notice')
-    assert.ok(notice.content[0].text.includes('Live references to 1 other session(s)'))
+    assert.ok(notice.content[0].text.includes('引用了 1 个其他会话'))
     assert.ok(notice.content[0].text.includes('src (source)'))
     assert.ok(notice.content[0].text.includes('read_session'))
     const readable = out[1]
@@ -234,7 +234,7 @@ describe('reference mode (lazy arm)', () => {
     assert.ok(!live.content[0].text.includes('(d)'))
     const overflow = out[1]
     if (overflow?.content[0]?.type !== 'text') throw new Error('expected text notice')
-    assert.ok(overflow.content[0].text.includes('beyond the limit'))
+    assert.ok(overflow.content[0].text.includes('超过 3 条上限'))
     assert.ok(overflow.content[0].text.includes('d'))
   })
 })

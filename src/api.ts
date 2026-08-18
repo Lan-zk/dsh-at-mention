@@ -127,6 +127,11 @@ function queryField(url: URL, name: string, maxBytes: number): string {
   return value.trim()
 }
 
+/** Remove absolute-path-like substrings from client-visible error text. */
+function sanitizeError(message: string): string {
+  return message.replace(/(?:[A-Za-z]:[\\/]|\/)[^\s:]*/g, '<path>')
+}
+
 /** Wrap one route handler with the closed error mapping. */
 function handle(ctx: Context, run: (req: IncomingMessage, res: ServerResponse) => Promise<void>) {
   return async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
@@ -142,7 +147,7 @@ function handle(ctx: Context, run: (req: IncomingMessage, res: ServerResponse) =
       }
       const message = error instanceof Error ? error.message : String(error)
       ctx.logger.warn('at-mention api failure: %s', message)
-      sendJson(res, 500, { ok: false, error: { code: 'internal', message } })
+      sendJson(res, 500, { ok: false, error: { code: 'internal', message: sanitizeError(message) } })
     }
   }
 }

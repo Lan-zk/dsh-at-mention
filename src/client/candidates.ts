@@ -27,7 +27,7 @@ export interface SessionCandidate {
 
 /** One projected file candidate. */
 export interface FileCandidate {
-  /** Unique display name (duplicate rel paths carry the root alias). */
+  /** Unique display name (duplicate basenames carry a directory/root alias). */
   name: string
   description?: string
   icon: string
@@ -101,12 +101,22 @@ export function sessionCandidates(
   })
 }
 
+/** Display form of a file row: forward slashes regardless of host platform. */
+function displayPathOf(rel: string): string {
+  return rel.replaceAll('\\', '/')
+}
+
+/** Basename of a display path. */
+function basenameOf(rel: string): string {
+  return rel.slice(rel.lastIndexOf('/') + 1)
+}
+
 /** Inclusive-match strength over a display path. */
 function pathScore(rel: string, query: string): number {
   const path = rel.toLocaleLowerCase()
   const needle = query.toLocaleLowerCase()
   if (path.startsWith(needle)) return 2
-  const lastSegment = path.slice(path.lastIndexOf('/') + 1)
+  const lastSegment = basenameOf(path)
   if (lastSegment.startsWith(needle)) return 1
   return 0
 }
@@ -125,8 +135,10 @@ function dirOf(rel: string): string | undefined {
 /**
  * Project file candidates over one host search response. Ranks prefix >
  * segment prefix > depth, clusters primary-root rows first, and keeps the
- * host's modified-time order as the stable tiebreak. Duplicate display paths
- * across roots carry the root alias for uniqueness.
+ * host's modified-time order as the stable tiebreak. Display paths are
+ * normalized to forward slashes so ranking and descriptions work on Windows.
+ * The primary label is the basename; duplicate basenames are disambiguated
+ * with the parent directory (or the root alias when the directory is shared).
  * @param rows - host search rows.
  * @param query - the query that produced them.
  * @param cap - inclusive result cap.
@@ -138,20 +150,37 @@ export function fileCandidates(
 ): FileCandidate[] {
   const roots = [...new Set(rows.map(row => row.root))]
   const multiRoot = roots.length > 1
-  const relCounts = new Map<string, number>()
-  for (const row of rows) relCounts.set(row.rel, (relCounts.get(row.rel) ?? 0) + 1)
+  const baseCounts = new Map<string, number>()
+  const dirCounts = new Map<string, number>()
+  for (const row of rows) {
+    const rel = displayPathOf(row.rel)
+    const base = basenameOf(rel)
+    baseCounts.set(base, (baseCounts.get(base) ?? 0) + 1)
+    const dir = dirOf(rel)
+    if (dir !== undefined) {
+      const key = `${base}|${dir}`
+      dirCounts.set(key, (dirCounts.get(key) ?? 0) + 1)
+    }
+  }
   const rootOrder = (root: string): number => (root === '主' ? 0 : 1)
   const ranked = rows.toSorted((a, b) => {
-    const scoreDelta = pathScore(b.rel, query) - pathScore(a.rel, query)
+    const relA = displayPathOf(a.rel)
+    const relB = displayPathOf(b.rel)
+    const scoreDelta = pathScore(relB, query) - pathScore(relA, query)
     if (scoreDelta !== 0) return scoreDelta
     const rootDelta = rootOrder(a.root) - rootOrder(b.root)
     if (rootDelta !== 0) return rootDelta
-    return depthOf(a.rel) - depthOf(b.rel)
+    return depthOf(relA) - depthOf(relB)
   })
   return ranked.slice(0, cap).map((row) => {
-    const duplicate = (relCounts.get(row.rel) ?? 0) > 1
-    const name = duplicate ? `${row.rel} · ${row.root}` : row.rel
-    const dir = dirOf(row.rel)
+    const rel = displayPathOf(row.rel)
+    const base = basenameOf(rel)
+    const dir = dirOf(rel)
+    const dupBase = (baseCounts.get(base) ?? 0) > 1
+    const dupDirAcrossRoots = dupBase && dir !== undefined && (dirCounts.get(`${base}|${dir}`) ?? 0) > 1
+    const name = dupBase
+      ? dir !== undefined && !dupDirAcrossRoots ? `${base} · ${dir}` : `${base} · ${row.root}`
+      : base
     return {
       name,
       ...(multiRoot || dir !== undefined ? {
@@ -159,7 +188,7 @@ export function fileCandidates(
       } : {}),
       icon: '📄',
       abs: row.abs,
-      rel: row.rel,
+      rel,
     }
   })
 }
