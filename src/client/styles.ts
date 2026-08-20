@@ -26,56 +26,16 @@ import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 export const CLIENT_STYLE_ID = 'dsh-at-mention/client-styles'
 
 /**
- * Theme-aware presentation overrides.
+ * Presentation overrides aligned with the harness DESIGN.md.
  *
- * Popup: only a trigger menu containing this plugin's 会话 or 文件 group is
- * stretched to the composer card's border box. On desktop, the primary
- * candidate label receives the remaining row width while trailing metadata
- * stays secondary and capped.
- *
- * Invisible reference chips: at-mention references look like ordinary text —
- * transparent background, no border radius, normal font size/weight — only
- * distinguished by the file/session colour. The host's placeholder cell keeps
- * the caret/selection stream aligned; long labels are still clipped inside
- * the fixed cell (an upstream limitation of the chip cell model).
+ * The candidate menu is owned by upstream ui-input-trigger and already
+ * consumes the design-system tokens, so this plugin only adjusts its own
+ * reference chips. At-mention chips are intentionally "invisible" chips: no
+ * pill background or radius, normal font metrics, one DeepSeek-blue signal
+ * color from the semantic alias ladder. No theme branches and no literal
+ * colors live here; the alias token adapts to light/dark automatically.
  */
 export const CLIENT_STYLES = `
-:root, body:not([data-ds-dark-theme]) {
-  --dsh-at-mention-file-color: var(--dsw-static-deepseek-600);
-  --dsh-at-mention-session-color: #6d56e0;
-}
-
-body[data-ds-dark-theme] {
-  --dsh-at-mention-file-color: var(--dsw-static-deepseek-400);
-  --dsh-at-mention-session-color: #a78bfa;
-}
-
-@media (min-width: 768px) {
-  [data-composer-card] [role='listbox']:has([data-source='会话'], [data-source='文件']) {
-    left: -1px;
-    right: -1px;
-    width: auto;
-    min-width: 0;
-    max-width: none;
-  }
-
-  [data-composer-card] [role='listbox']:has([data-source='会话'], [data-source='文件'])
-    [role='option'] > [aria-hidden] + span {
-    flex: 1 1 auto;
-    min-width: 0;
-    max-width: none;
-  }
-
-  [data-composer-card] [role='listbox']:has([data-source='会话'], [data-source='文件'])
-    [role='option'] > [aria-hidden] + span + span {
-    flex: 0 1 auto;
-    max-width: 34%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
 [data-composer-card] [data-input-backdrop] [data-decoration='chip'][data-source='文件'],
 [data-composer-card] [data-input-backdrop] [data-decoration='chip'][data-source='会话'] {
   position: relative;
@@ -87,9 +47,9 @@ body[data-ds-dark-theme] {
 [data-composer-card] [data-input-backdrop] [data-decoration='chip'][data-source='文件'] > span,
 [data-composer-card] [data-input-backdrop] [data-decoration='chip'][data-source='会话'] > span {
   position: absolute;
-  left: var(--dsh-at-mention-chip-label-left, 0);
-  top: var(--dsh-at-mention-chip-label-top, 0);
-  width: var(--dsh-at-mention-chip-label-width, 100%);
+  left: 0;
+  top: 0;
+  width: 100%;
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
@@ -100,11 +60,7 @@ body[data-ds-dark-theme] {
   font-weight: inherit;
   letter-spacing: normal;
   text-align: left;
-  color: var(--dsh-at-mention-file-color);
-}
-
-[data-composer-card] [data-input-backdrop] [data-decoration='chip'][data-source='会话'] > span {
-  color: var(--dsh-at-mention-session-color);
+  color: var(--dsw-alias-state-business-primary);
 }
 `
 
@@ -118,8 +74,11 @@ body[data-ds-dark-theme] {
 export function applyClientStyles(ctx: ClientContext): void {
   ctx.effect(() => {
     if (typeof document === 'undefined') return () => {}
+    // Re-entrant/HMR-safe ownership: a previous evaluation may still own a
+    // style tag. Replace it with a fresh tag owned by this effect so the old
+    // fiber's disposer can never remove the new fiber's stylesheet.
     const existing = findStyle(CLIENT_STYLE_ID)
-    if (existing !== null) return () => {}
+    existing?.remove()
     const style = document.createElement('style')
     style.dataset.plugin = 'dsh-at-mention'
     style.dataset.pluginCss = CLIENT_STYLE_ID

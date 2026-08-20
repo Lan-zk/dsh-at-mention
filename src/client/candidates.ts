@@ -30,7 +30,6 @@ export interface FileCandidate {
   /** Unique display name (duplicate basenames carry a directory/root alias). */
   name: string
   description?: string
-  icon: string
   abs: string
   rel: string
 }
@@ -189,7 +188,6 @@ export function fileCandidates(
       ...(multiRoot || dir !== undefined ? {
         description: [multiRoot ? row.root : undefined, rel].filter((part): part is string => part !== undefined).join(' · '),
       } : {}),
-      icon: '📄',
       abs: row.abs,
       rel,
     }

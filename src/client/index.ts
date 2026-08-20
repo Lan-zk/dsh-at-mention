@@ -38,6 +38,10 @@ export interface ClientConfig {
 /** Required services (also the informational dsh.client edges). */
 export const inject = ['inputTriggers', 'sessions']
 
+/** File-source non-pickable candidate names (error/overflow rows). */
+const FILE_SEARCH_UNAVAILABLE = '文件搜索暂时不可用'
+const FILE_RESULTS_TRUNCATED = '结果过多，请细化关键词'
+
 /** A picked session's durable client-side identity plus the chosen label. */
 interface SessionRef {
   id: string
@@ -76,6 +80,16 @@ function parseFileRef(ref: string): FileRef | undefined {
   } catch {
     return undefined
   }
+}
+
+/** Replace a source's candidate-name → ref map after a new candidate list settles.
+ * Stale entries stay pickable while a newer candidate request is still in
+ * flight; entries absent from the settled list are removed. */
+function replacePicked<T>(picked: Map<string, T>, next: ReadonlyMap<string, T>): void {
+  for (const key of picked.keys()) {
+    if (!next.has(key)) picked.delete(key)
+  }
+  for (const [key, value] of next) picked.set(key, value)
 }
 
 /**
@@ -120,15 +134,15 @@ function sessionSource(ctx: ClientContext, cap: number, scope: 'workspace' | 'al
     candidates(session, { query }) {
       const rows = sessionRows(ctx)
       const projected = sessionCandidates(rows, session.sessionId, cwdOf(ctx, session), scope, query, cap)
-      picked.clear()
+      const next = new Map<string, SessionRef>()
       const candidates: InputTriggerCandidate[] = projected.map((candidate) => {
-        picked.set(candidate.label, { id: candidate.id, label: candidate.label })
+        next.set(candidate.label, { id: candidate.id, label: candidate.label })
         return {
           name: candidate.label,
           ...(candidate.description === undefined ? {} : { description: candidate.description }),
-          icon: '💬',
         }
       })
+      replacePicked(picked, next)
       return Promise.resolve(candidates)
     },
     onPick({ candidate }: InputTriggerPick): PickOutcome {
@@ -165,9 +179,8 @@ function sessionSource(ctx: ClientContext, cap: number, scope: 'workspace' | 'al
 function fileSource(ctx: ClientContext, debounceMs: number, cap: number): InputTriggerSource {
   const picked = new Map<string, FileRef>()
   const errorCandidate = (message: string): InputTriggerCandidate => ({
-    name: '文件搜索暂时不可用',
+    name: FILE_SEARCH_UNAVAILABLE,
     description: message,
-    icon: '⚠️',
   })
   return {
     trigger: '@',
@@ -195,27 +208,26 @@ function fileSource(ctx: ClientContext, debounceMs: number, cap: number): InputT
         return [errorCandidate(detail)]
       }
       if (signal.aborted) return []
-      picked.clear()
+      const next = new Map<string, FileRef>()
       const projected = fileCandidates(data.files, trimmed, cap)
       const candidates = projected.map((candidate) => {
-        picked.set(candidate.name, { abs: candidate.abs, rel: candidate.rel, cwd, label: candidate.name })
+        next.set(candidate.name, { abs: candidate.abs, rel: candidate.rel, cwd, label: candidate.name })
         return {
           name: candidate.name,
           ...(candidate.description === undefined ? {} : { description: candidate.description }),
-          icon: candidate.icon,
         }
       })
+      replacePicked(picked, next)
       if (data.truncated) {
         candidates.push({
-          name: '结果过多，请细化关键词',
+          name: FILE_RESULTS_TRUNCATED,
           description: `仅显示前 ${projected.length} 条`,
-          icon: '⚠️',
         })
       }
       return candidates
     },
     onPick({ candidate }: InputTriggerPick): PickOutcome {
-      if (candidate.icon === '⚠️') return 'handled'
+      if (candidate.name === FILE_SEARCH_UNAVAILABLE || candidate.name === FILE_RESULTS_TRUNCATED) return 'handled'
       const file = picked.get(candidate.name)
       if (file === undefined) return undefined
       return {

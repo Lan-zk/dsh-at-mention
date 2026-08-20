@@ -60,15 +60,6 @@ afterEach(() => {
 })
 
 describe('client styles', () => {
-  it('scopes desktop menu layout to the at-mention sources', () => {
-    assert.ok(CLIENT_STYLES.includes('@media (min-width: 768px)'))
-    assert.ok(CLIENT_STYLES.includes(":has([data-source='会话'], [data-source='文件'])"))
-    assert.ok(CLIENT_STYLES.includes("[role='option'] > [aria-hidden] + span"))
-    assert.ok(CLIENT_STYLES.includes("[role='option'] > [aria-hidden] + span + span"))
-    assert.ok(CLIENT_STYLES.includes('text-overflow: ellipsis'))
-    assert.equal(CLIENT_STYLES.includes(":has([data-source])"), false)
-  })
-
   it('styles only at-mention chips as invisible text, never unrelated chips', () => {
     assert.ok(CLIENT_STYLES.includes("[data-source='文件']"))
     assert.ok(CLIENT_STYLES.includes("[data-source='会话']"))
@@ -80,12 +71,13 @@ describe('client styles', () => {
     assert.equal(CLIENT_STYLES.includes('[data-at-ref]'), false)
   })
 
-  it('uses theme-aware colours with a distinct session colour', () => {
-    assert.ok(CLIENT_STYLES.includes('--dsh-at-mention-file-color'))
-    assert.ok(CLIENT_STYLES.includes('--dsh-at-mention-session-color'))
-    assert.ok(CLIENT_STYLES.includes('body[data-ds-dark-theme]'))
-    assert.ok(CLIENT_STYLES.includes('var(--dsh-at-mention-file-color)'))
-    assert.ok(CLIENT_STYLES.includes('var(--dsh-at-mention-session-color)'))
+  it('uses only semantic tokens and no theme branches or literal colors', () => {
+    assert.ok(CLIENT_STYLES.includes('var(--dsw-alias-state-business-primary)'))
+    assert.equal(CLIENT_STYLES.includes('body[data-ds-dark-theme]'), false)
+    assert.equal(CLIENT_STYLES.includes(':root'), false)
+    assert.equal(CLIENT_STYLES.includes('--dsh-at-mention-file-color'), false)
+    assert.equal(CLIENT_STYLES.includes('--dsh-at-mention-session-color'), false)
+    assert.equal(CLIENT_STYLES.includes('@media'), false)
   })
 
   it('injects one plugin-owned style tag as a disposable effect', () => {
@@ -109,7 +101,7 @@ describe('client styles', () => {
     assert.equal(appended[0]?.removed, true)
   })
 
-  it('does not duplicate a style tag left by a previous evaluation', () => {
+  it('replaces a style tag left by a previous evaluation and owns the replacement', () => {
     const existing: FakeStyle[] = [{
       dataset: { plugin: 'dsh-at-mention', pluginCss: CLIENT_STYLE_ID },
       textContent: CLIENT_STYLES,
@@ -122,7 +114,12 @@ describe('client styles', () => {
       },
     }]
     const { appended } = installFakeDocument(existing)
-    applyClientStyles({ effect(body: () => () => void) { void body() } } as unknown as ClientContext)
-    assert.equal(appended.length, 0)
+    let disposer: (() => void) | undefined
+    applyClientStyles({ effect(body: () => () => void) { disposer = body() } } as unknown as ClientContext)
+    assert.equal(existing[0]?.removed, true)
+    assert.equal(appended.length, 1)
+    assert.equal(appended[0]?.dataset.pluginCss, CLIENT_STYLE_ID)
+    disposer?.()
+    assert.equal(appended[0]?.removed, true)
   })
 })
