@@ -15,7 +15,7 @@ import { encodeSessionReference } from '../src/shared/reference-format.ts'
 /** Quiet logger for degrade paths. */
 const silent = { warn: () => {} }
 
-/** The rc.8 engine leaves full-text search abstract; the snapshot path only needs the concrete reads. */
+/** The rc.7 engine leaves full-text search abstract; the snapshot path only needs the concrete reads. */
 class TestSessionQueryEngine extends SessionQueryEngine {
   override searchSessions(
     ..._args: Parameters<SessionQueryEngine['searchSessions']>
