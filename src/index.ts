@@ -92,21 +92,25 @@ export interface ResolvedConfig {
 }
 
 /**
- * Mount the session-reference resolver, the pre-step consumer, and the HTTP
- * surface. Every registration is an effect, so unload and HMR leave nothing
- * behind.
+ * Reuse the core session-reference resolver when the host already mounts it;
+ * otherwise mount the resolver for standalone profiles. Then register the
+ * pre-step consumer and HTTP surface. Every registration is an effect, so
+ * unload and HMR leave nothing behind.
  * @param ctx - the plugin context.
  * @param config - schemastery-validated plugin config.
  */
 export async function apply(ctx: Context, config: Config): Promise<void> {
   const resolved = config as ResolvedConfig
-  await ctx.plugin(SessionReferenceResolver, {
-    maxReferenceBytes: resolved.maxReferenceBytes,
-    maxReferences: resolved.maxReferences,
-  })
-  const resolver = ctx.get('sessionReferenceResolver')
+  let resolver = ctx.get('sessionReferenceResolver')
   if (resolver === undefined) {
-    throw new Error('at-mention: sessionReferenceResolver is unavailable after mounting')
+    await ctx.plugin(SessionReferenceResolver, {
+      maxReferenceBytes: resolved.maxReferenceBytes,
+      maxReferences: resolved.maxReferences,
+    })
+    resolver = ctx.get('sessionReferenceResolver')
+  }
+  if (resolver === undefined) {
+    throw new Error('at-mention: sessionReferenceResolver is unavailable after mounting or host lookup')
   }
   applyConsumer(ctx, resolver, {
     mode: resolved.sessionReferenceMode,

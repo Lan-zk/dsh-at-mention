@@ -1,5 +1,5 @@
 /**
- * Plain-JS query-engine row for the Loader composition test: the rc.6 engine
+ * Plain-JS query-engine row for the Loader composition test: the rc.8 engine
  * leaves full-text search abstract, and Loader entries import at runtime, so
  * this helper must stay JavaScript (the typed programs never see it; the
  * snapshot paths only need the concrete reads).

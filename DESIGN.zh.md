@@ -145,7 +145,7 @@ Codex 的 Tab 下钻/Enter 插目录依赖 Tab 仲裁，dsh 管线不支持（F4
 - 依赖增量（相对模板）：host 侧新增 `@deepseek-ai/dsh-session-reference`、`@deepseek-ai/dsh-tool-fs-search`、
   `@deepseek-ai/dsh-host-webserver`、`@deepseek-ai/dsh-session-query`、`@deepseek-ai/dsh-llm`（`createUserMessage`）；
   client 侧新增 `@deepseek-ai/dsh-client-ui-input-trigger`、`@deepseek-ai/dsh-client-runtime`（产品文案中文硬编码，无 locale 依赖）。
-  版本对齐钉 `0.1.0-rc.6`（工作区约定）。
+  版本对齐钉 `0.1.0-rc.8`（与当前 DSH Web bundle 一致）。
 - **TS 程序分离（实现新增）**：`dsh-session`（host）与 `dsh-client-runtime`（client）对 `Context.sessions` 的声明合并互斥（host/client 双 aggregate，02 §7），
   一个 program 同时 import 两半会得到冲突类型（`list: () => Session[]`）。解法：`tsconfig.json`（host src+host tests）、`tsconfig.client.json`（client src）、
   `tsconfig.client-tests.json`（client 纯逻辑测试，排除 client/index.ts）三程序分查；类型产物分 `tsconfig.types.json` / `tsconfig.types.client.json` 两次 emit。

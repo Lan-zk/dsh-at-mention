@@ -19,7 +19,7 @@ interface RouteSpec {
   handler(req: IncomingMessage, res: ServerResponse): Promise<void> | void
 }
 
-async function boot(mode: 'snapshot' | 'reference'): Promise<{
+async function boot(mode: 'snapshot' | 'reference', withCoreReference = false): Promise<{
   ctx: Context
   loader: Loader
   routes: RouteSpec[]
@@ -52,6 +52,9 @@ async function boot(mode: 'snapshot' | 'reference'): Promise<{
     ctx.loader.create({ id, name, ...(config === undefined ? {} : { config }) } as never)
   await row('session-store', '@deepseek-ai/dsh-session')
   await row('session-query', './tests/helpers/test-engine.js')
+  if (withCoreReference) {
+    await row('session-reference', '@deepseek-ai/dsh-session-reference')
+  }
   await row('at-mention', './lib/index.js', {
     sessionReferenceMode: mode,
     maxReferenceBytes: 65536,
@@ -114,6 +117,16 @@ describe('loader composition', () => {
 
   it('boots in reference mode (read_session tool installer registered)', async (t) => {
     const mounted = await boot('reference')
+    if (mounted === null) {
+      t.skip('lib/index.js not built yet (run pnpm run build first)')
+      return
+    }
+    assert.ok(mounted.ctx.get('sessionReferenceResolver'))
+    assert.equal(mounted.routes.length, 3)
+  })
+
+  it('reuses the session-reference service supplied by the core web layer', async (t) => {
+    const mounted = await boot('snapshot', true)
     if (mounted === null) {
       t.skip('lib/index.js not built yet (run pnpm run build first)')
       return

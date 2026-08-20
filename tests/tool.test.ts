@@ -9,7 +9,7 @@ import SessionQueryEngine from '@deepseek-ai/dsh-session-query'
 import { readSessionTool } from '../src/tool.ts'
 import type { ReadSessionToolOptions } from '../src/tool.ts'
 
-/** The rc.6 engine leaves full-text search abstract; the tool only needs the concrete reads. */
+/** The rc.8 engine leaves full-text search abstract; the tool only needs the concrete reads. */
 class TestSessionQueryEngine extends SessionQueryEngine {
   override searchSessions(
     ..._args: Parameters<SessionQueryEngine['searchSessions']>
